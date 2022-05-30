@@ -47,7 +47,7 @@ jobs:
       - run:
           name: Deploy
           command: |
-            ssh -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_ADDRESS}" "/bin/bash ./scripts/deploy.sh ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            ssh -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_ADDRESS}" "/bin/bash ./scripts/deploy/circle-docker.sh ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
