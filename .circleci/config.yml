@@ -42,13 +42,15 @@ jobs:
       - run:
           name: Build and push Docker image
           command: |
+            echo "${CI_BUILD_TOKEN}" | docker login -u gitlab-ci-token "${CI_REGISTRY}" --password-stdin
             docker build -t averagebit/$IMAGE_NAME:$TAG .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             docker push averagebit/$IMAGE_NAME:$TAG
       - run:
           name: Deploy
           command: |
-            ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_ADDRESS "/bin/bash ./scripts/deploy.sh averagebit/$IMAGE_NAME:$TAG"
+            ssh -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_ADDRESS}" \
+              "/bin/bash echo ${CI_BUILD_TOKEN} | docker login -u gitlab-ci-token ${CI_REGISTRY} --pasword-stdin && ./scripts/deploy.sh ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            # ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_ADDRESS "/bin/bash ./scripts/deploy.sh averagebit/$IMAGE_NAME:$TAG"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
