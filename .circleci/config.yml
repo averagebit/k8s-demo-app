@@ -18,8 +18,7 @@ jobs:
       - run:
           name: Setup env
           command: |
-            echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
-            echo 'export IMAGE_NAME=circle-docker' >> $BASH_ENV
+            echo 'export CI_VERSION_TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
       - restore_cache:
           keys:
             - go-mod-v4-{{ checksum "go.sum" }}
@@ -43,14 +42,13 @@ jobs:
           name: Build and push Docker image
           command: |
             echo "${CI_BUILD_TOKEN}" | docker login -u gitlab-ci-token "${CI_REGISTRY}" --password-stdin
-            docker build -t averagebit/$IMAGE_NAME:$TAG .
-            docker push averagebit/$IMAGE_NAME:$TAG
+            docker build -t "${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}" .
+            docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
       - run:
           name: Deploy
           command: |
             ssh -o StrictHostKeyChecking=no "${SERVER_USER}@${SERVER_ADDRESS}" \
               "/bin/bash echo ${CI_BUILD_TOKEN} | docker login -u gitlab-ci-token ${CI_REGISTRY} --pasword-stdin && ./scripts/deploy.sh ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
-            # ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_ADDRESS "/bin/bash ./scripts/deploy.sh averagebit/$IMAGE_NAME:$TAG"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
