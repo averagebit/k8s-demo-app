@@ -1,5 +1,5 @@
 # ------ DEVELOPMENT BLOCK ------ #
-FROM golang:1.18 as development
+FROM golang:1.18-alpine as development
 
 # Add a work directory
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN go install github.com/cespare/reflex@latest
 CMD reflex -g '*.go' go run main.go --start-service
 
 # ------ BUILDER BLOCK ------ #
-FROM golang:1.18 as builder
+FROM golang:1.18-alpine as builder
 
 # Define build env
 ENV GOOS linux
