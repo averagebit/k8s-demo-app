@@ -42,10 +42,10 @@ jobs:
       - run:
           name: Build image
           command: |
-            docker build --target development -t "${CI_REGISTRY}/${CI_PROJECT_PATH}:latest" .
+            docker build --target development -t "${CI_PROJECT_PATH}:latest" .
       - run:
           name: Archive image
-          command: docker save -o image.tar "${CI_REGISTRY}/${CI_PROJECT_PATH}" 
+          command: docker save -o image.tar "${CI_PROJECT_PATH}" 
       - persist_to_workspace:
           root: .
           paths:
@@ -66,9 +66,9 @@ jobs:
           command: |
             echo "${CI_BUILD_TOKEN}" | docker login -u averagebit --password-stdin
             CI_VERSION_TAG="0.0.${CIRCLE_BUILD_NUM}"
-            docker tag "${CI_REGISTRY}/${CI_PROJECT_PATH}:latest" "${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
-            docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}:latest"
-            docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            docker tag "${CI_PROJECT_PATH}:latest" "${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            docker push "${CI_PROJECT_PATH}:latest"
+            docker push "${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
 
   deploy:
     executor: image-base
@@ -77,7 +77,7 @@ jobs:
           name: Deploy
           command: |
             CI_VERSION_TAG="0.0.$((${CIRCLE_BUILD_NUM} - 1))"
-            IMAGE_NAME="${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            IMAGE_NAME="${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
             CONTAINER_NAME="circle"
             ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "sudo docker rm -f '${CONTAINER_NAME}' || true && sudo docker run -d --restart always -p 127.0.0.1:2000:8080/tcp --name '${CONTAINER_NAME}' '${IMAGE_NAME}'"
 
