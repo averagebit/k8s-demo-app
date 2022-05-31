@@ -2,12 +2,16 @@ package main
 
 import (
 	"log"
-	"net/http"
 
-	"github.com/averagebit/circle-docker/api/app"
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
-	handler := http.HandlerFunc(app.Server)
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	app := fiber.New()
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World!")
+	})
+
+	log.Fatal(app.Listen(":3000"))
 }
