@@ -16,8 +16,8 @@ jobs:
     executor: image-go
     steps:
       - discord/approval:
-        message: "**${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**"
-        webhook: "${DISCORD_APPROVAL_WEBHOOK}"
+          message: "**${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**"
+          webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - checkout
       - restore_cache:
           keys:
