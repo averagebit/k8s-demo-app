@@ -17,7 +17,6 @@ jobs:
     steps:
       - discord/approval:
         message: "**${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**"
-        message: "**${CIRCLE_USERNAME}**'s **${CIRCLE_JOB}** for **${CIRCLE_TAG}** failed."
         webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - checkout
       - restore_cache:
