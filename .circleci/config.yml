@@ -16,7 +16,7 @@ jobs:
     executor: image-go
     steps:
       - discord/approval:
-          message: "**${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**"
+          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**."
           webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - checkout
       - restore_cache:
@@ -42,7 +42,7 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: "**${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   build:
@@ -54,17 +54,17 @@ jobs:
       - run:
           name: Build image
           command: |
-            docker build --target production -t "${CI_PROJECT_PATH}:latest" .
+            docker build --target production -t "${REGISTRY_PROJECT_PATH}:latest" .
       - run:
           name: Archive image
-          command: docker save -o image.tar "${CI_PROJECT_PATH}" 
+          command: docker save -o image.tar "${REGISTRY_PROJECT_PATH}" 
       - persist_to_workspace:
           root: .
           paths:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: "**${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   publish:
@@ -80,13 +80,13 @@ jobs:
       - run:
           name: Publish image
           command: |
-            echo "${CI_BUILD_TOKEN}" | docker login -u averagebit --password-stdin
-            docker tag "${CI_PROJECT_PATH}:latest" "${CI_PROJECT_PATH}:${CIRCLE_TAG}"
-            docker push "${CI_PROJECT_PATH}:${CIRCLE_TAG}"
-            docker push "${CI_PROJECT_PATH}:latest"
+            echo "${REGISTRY_DOCKER_TOKEN}" | docker login -u averagebit --password-stdin
+            docker tag "${REGISTRY_PROJECT_PATH}:latest" "${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}"
+            docker push "${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}"
+            docker push "${REGISTRY_PROJECT_PATH}:latest"
       - discord/status:
           fail_only: true
-          failure_message: "**${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   deploy:
@@ -96,13 +96,17 @@ jobs:
           name: Deploy
           command: |
             ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "
-              sudo docker pull '${CI_PROJECT_PATH}:${CIRLCE_TAG}' &&
+              sudo docker pull '${REGISTRY_PROJECT_PATH}:${CIRLCE_TAG}' &&
               sudo docker rm -f circle-docker || true &&
-              sudo docker run -d --name circle-docker --restart always '${CI_PROJECT_PATH}:${CIRCLE_TAG}'
+              sudo docker run -d --name circle-docker --restart always '${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}'
             "
       - discord/status:
           fail_only: true
-          failure_message: "**${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
+      - discord/status:
+          success_only: true
+          success_message: ":tada: **${CIRCLE_USERNAME}**'s workflow for **${CIRCLE_TAG}** finished."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
 workflows:
@@ -118,13 +122,13 @@ workflows:
               ignore: /.*/
       - build:
           context:
-            - ci
+            - registry
             - discord
           filters:
             <<: *filters
       - publish:
           context:
-            - ci
+            - registry
             - discord
           requires:
             - test
@@ -133,7 +137,7 @@ workflows:
             <<: *filters
       - deploy:
           context:
-            - ci
+            - registry
             - ci-test-server-ssh
             - discord
           requires:
