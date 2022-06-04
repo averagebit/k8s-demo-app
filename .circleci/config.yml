@@ -39,7 +39,7 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          failure_message: ":red_circle: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   build:
@@ -61,7 +61,7 @@ jobs:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          failure_message: ":red_circle: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   publish:
@@ -83,7 +83,7 @@ jobs:
             docker push "${CI_PROJECT_PATH}:latest"
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          failure_message: ":red_circle: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   deploy:
@@ -99,14 +99,14 @@ jobs:
             "
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          failure_message: ":red_circle: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
 workflows:
   ci:
     jobs:
       - discord/approval:
-          message: "${CIRCLE_USERNAME} triggered a **[workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}**."
+          message: ":green_circle: ${CIRCLE_USERNAME} triggered a **[workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}**."
           webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - test:
           context:
