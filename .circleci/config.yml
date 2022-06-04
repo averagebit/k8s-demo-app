@@ -1,25 +1,27 @@
 version: 2.1
 
+orbs: 
+  discord: antonioned/discord@0.1.0
+
 executors:
   image-base:
     docker:
       - image: cimg/base:2022.05
+  image-go:
+    docker:
+      - image: cimg/go:1.18.2
 
 jobs:
   test:
-    docker:
-      - image: cimg/go:1.18.2
+    executor: image-go
     steps:
       - checkout
-      # Finds dependencies not cached during past jobs.
       - restore_cache:
           keys:
             - go-mod-v4-{{ checksum "go.sum" }}
-      # Downloads only dependencies that were not saved in the cache.
       - run:
           name: Install Dependencies
           command: go mod download
-      # Saves current dependencies in cache.
       - save_cache:
           key: go-mod-v4-{{ checksum "go.sum" }}
           paths:
@@ -28,10 +30,17 @@ jobs:
           name: Run tests
           command: |
             mkdir -p /tmp/test-reports
-            gotestsum --junitfile /tmp/test-reports/unit-tests.xml
-      # NOTE: Generate coverage and expose to web.
+            PACKAGES="$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)"
+            PACKAGE_NAMES=$(echo $PACKAGES | tr -d '\n')
+            echo "Testing the following packages:"
+            echo "${PACKAGE_NAMES}"
+            gotestsum --junitfile /tmp/test-reports/report.xml -- -covermode=count -coverprofile=/tmp/test-reports/coverage.out ${PACKAGE_NAMES}
       - store_test_results:
           path: /tmp/test-reports
+      - discord/status:
+          fail_only: true
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   build:
     executor: image-base
@@ -42,7 +51,7 @@ jobs:
       - run:
           name: Build image
           command: |
-            docker build --target development -t "${CI_PROJECT_PATH}:latest" .
+            docker build --target production -t "${CI_PROJECT_PATH}:latest" .
       - run:
           name: Archive image
           command: docker save -o image.tar "${CI_PROJECT_PATH}" 
@@ -50,6 +59,10 @@ jobs:
           root: .
           paths:
             - ./image.tar
+      - discord/status:
+          fail_only: true
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   publish:
     executor: image-base
@@ -65,10 +78,13 @@ jobs:
           name: Publish image
           command: |
             echo "${CI_BUILD_TOKEN}" | docker login -u averagebit --password-stdin
-            CI_VERSION_TAG="0.0.${CIRCLE_BUILD_NUM}"
-            docker tag "${CI_PROJECT_PATH}:latest" "${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+            docker tag "${CI_PROJECT_PATH}:latest" "${CI_PROJECT_PATH}:${CIRCLE_TAG}"
+            docker push "${CI_PROJECT_PATH}:${CIRCLE_TAG}"
             docker push "${CI_PROJECT_PATH}:latest"
-            docker push "${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
+      - discord/status:
+          fail_only: true
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   deploy:
     executor: image-base
@@ -76,31 +92,51 @@ jobs:
       - run:
           name: Deploy
           command: |
-            CI_VERSION_TAG="0.0.$((${CIRCLE_BUILD_NUM} - 1))"
-            IMAGE_NAME="${CI_PROJECT_PATH}:${CI_VERSION_TAG}"
-            CONTAINER_NAME="circle"
-            ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "sudo docker rm -f '${CONTAINER_NAME}' || true && sudo docker run -d --restart always -p 127.0.0.1:2000:8080/tcp --name '${CONTAINER_NAME}' '${IMAGE_NAME}'"
+            ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "
+              sudo docker pull '${CI_PROJECT_PATH}:${CIRLCE_TAG}' &&
+              sudo docker rm -f circle-docker || true &&
+              sudo docker run -d --name circle-docker --restart always '${CI_PROJECT_PATH}:${CIRCLE_TAG}'
+            "
+      - discord/status:
+          fail_only: true
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}'s** **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}** failed."
+          webhook: "${DISCORD_STATUS_WEBHOOK}"
 
 workflows:
   ci:
     jobs:
+      - discord/approval:
+          message: "${CIRCLE_USERNAME} triggered a **[workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** on the **${CIRCLE_BRANCH}** of **${CIRCLE_PROJECT_REPONAME}**."
+          webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - test:
-          filters:
+          context:
+            - discord
+          filters: &filters
+            tags:
+              ignore: /^.*-DEV.*/
             branches:
-              only: development
+              ignore: /.*/
       - build:
+          context:
+            - ci
+            - discord
           filters:
-            branches:
-              only: development
+            <<: *filters
       - publish:
+          context:
+            - ci
+            - discord
           requires:
+            - test
             - build
           filters:
-            branches:
-              only: development  
+            <<: *filters
       - deploy:
+          context:
+            - ci
+            - ci-test-server-ssh
+            - discord
           requires:
             - publish
           filters:
-            branches:
-              only: development
+            <<: *filters
