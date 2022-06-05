@@ -63,7 +63,7 @@ jobs:
           project: '${CIRCLE_PROJECT_REPONAME}'
           severity-threshold: critical
           target-file: Dockerfile
-          token-variable: "${SNYK_TOKEN}"
+          token-variable: SNYK_TOKEN
       - run:
           name: Archive image
           command: docker save -o image.tar "${REGISTRY_PROJECT_PATH}" 
