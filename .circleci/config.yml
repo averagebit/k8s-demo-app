@@ -2,6 +2,7 @@ version: 2.1
 
 orbs: 
   discord: antonioned/discord@0.1.0
+  snyk: snyk/snyk@1.1.2
 
 executors:
   image-base:
@@ -55,6 +56,14 @@ jobs:
           name: Build image
           command: |
             docker build --target production -t "${REGISTRY_PROJECT_PATH}:latest" .
+      - snyk/scan:
+          docker-image-name: "${REGISTRY_PROJECT_PATH}:latest"
+          fail-on-issues: true
+          monitor-on-build: true
+          project: '${CIRCLE_PROJECT_REPONAME}'
+          severity-threshold: critical
+          target-file: Dockerfile
+          token-variable: "${SNYK_TOKEN}"
       - run:
           name: Archive image
           command: docker save -o image.tar "${REGISTRY_PROJECT_PATH}" 
@@ -122,14 +131,15 @@ workflows:
               ignore: /.*/
       - build:
           context:
-            - registry
             - discord
+            - registry
+            - snyk
           filters:
             <<: *filters
       - publish:
           context:
-            - registry
             - discord
+            - registry
           requires:
             - test
             - build
@@ -137,9 +147,9 @@ workflows:
             <<: *filters
       - deploy:
           context:
-            - registry
             - ci-test-server-ssh
             - discord
+            - registry
           requires:
             - publish
           filters:
