@@ -61,7 +61,7 @@ jobs:
           fail-on-issues: true
           monitor-on-build: true
           project: '${CIRCLE_PROJECT_REPONAME}'
-          severity-threshold: critical
+          severity-threshold: high
           target-file: Dockerfile
           token-variable: SNYK_TOKEN
       - run:
@@ -125,10 +125,8 @@ workflows:
           context:
             - discord
           filters: &filters
-            tags:
-              ignore: /^.*-DEV.*/
             branches:
-              ignore: /.*/
+              only: main
       - build:
           context:
             - discord
