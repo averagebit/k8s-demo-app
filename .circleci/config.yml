@@ -17,7 +17,7 @@ jobs:
     executor: image-go
     steps:
       - discord/approval:
-          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow for **${CIRCLE_TAG}**."
+          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow on  **${CIRCLE_BRANCH}**."
           webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - checkout
       - restore_cache:
@@ -43,7 +43,7 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on  **${CIRCLE_BRANCH}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   build:
@@ -73,7 +73,7 @@ jobs:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on  **${CIRCLE_BRANCH}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   publish:
@@ -90,12 +90,11 @@ jobs:
           name: Publish image
           command: |
             echo "${REGISTRY_DOCKER_TOKEN}" | docker login -u averagebit --password-stdin
-            docker tag "${REGISTRY_PROJECT_PATH}:latest" "${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}"
-            docker push "${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}"
+            docker tag "${REGISTRY_PROJECT_PATH}:latest"
             docker push "${REGISTRY_PROJECT_PATH}:latest"
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on  **${CIRCLE_BRANCH}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
   deploy:
@@ -107,15 +106,15 @@ jobs:
             ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "
               sudo docker pull '${REGISTRY_PROJECT_PATH}:${CIRLCE_TAG}' &&
               sudo docker rm -f circle-docker || true &&
-              sudo docker run -d --name circle-docker --restart always '${REGISTRY_PROJECT_PATH}:${CIRCLE_TAG}'
+              sudo docker run -d --name circle-docker --restart always '${REGISTRY_PROJECT_PATH}:latest'
             "
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on  **${CIRCLE_BRANCH}** failed."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
       - discord/status:
           success_only: true
-          success_message: ":tada: **${CIRCLE_USERNAME}**'s workflow for **${CIRCLE_TAG}** finished."
+          success_message: ":tada: **${CIRCLE_USERNAME}**'s workflow on  **${CIRCLE_BRANCH}** finished."
           webhook: "${DISCORD_STATUS_WEBHOOK}"
 
 workflows:
