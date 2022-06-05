@@ -17,7 +17,7 @@ COPY . /app
 RUN go install github.com/cespare/reflex@latest
 
 # Create non-root user and group
-RUN groupadd -r app && useradd --no-log-init -r -g app app
+RUN addgroup -S app && adduser -S -G app app
 
 # Change ownership of /app to user app
 RUN chown -R app:app /app
