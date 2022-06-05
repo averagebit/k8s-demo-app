@@ -90,7 +90,6 @@ jobs:
           name: Publish image
           command: |
             echo "${REGISTRY_DOCKER_TOKEN}" | docker login -u averagebit --password-stdin
-            docker tag "${REGISTRY_PROJECT_PATH}:latest"
             docker push "${REGISTRY_PROJECT_PATH}:latest"
       - discord/status:
           fail_only: true
@@ -104,7 +103,7 @@ jobs:
           name: Deploy
           command: |
             ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SSH_HOST}" "
-              sudo docker pull '${REGISTRY_PROJECT_PATH}:${CIRLCE_TAG}' &&
+              sudo docker pull '${REGISTRY_PROJECT_PATH}:latest' &&
               sudo docker rm -f circle-docker || true &&
               sudo docker run -d --name circle-docker --restart always '${REGISTRY_PROJECT_PATH}:latest'
             "
