@@ -152,6 +152,6 @@ workflows:
           context:
             - discord
           requires:
-            - deploy
+            - publish
           filters:
             <<: *filters
