@@ -1,8 +1,6 @@
 # ------ DEVELOPMENT BLOCK ------ #
 FROM golang:1.18-alpine as development
 
-LABEL maintainer "averagebit <averagebit@pm.me>"
-
 # Switch working directory
 WORKDIR /app
 
@@ -17,7 +15,7 @@ COPY . /app
 RUN go install github.com/cespare/reflex@latest
 
 # Create non-root user and group
-RUN addgroup -S app && adduser -S -G app app
+RUN addgroup -S -g 1050 app && adduser -S -u 1050 -G app app
 
 # Change ownership of /app to user app
 RUN chown -R app:app /app
@@ -57,7 +55,7 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 # Create non-root user and group
-RUN addgroup -S app && adduser -S -G app app
+RUN addgroup -S -g 1050 app && adduser -S -u 1050 -G app app
 
 # Copy built binary from builder
 COPY --from=builder /app/main /app/

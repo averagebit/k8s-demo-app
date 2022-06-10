@@ -13,12 +13,16 @@ executors:
       - image: cimg/go:1.18.2
 
 jobs:
+  discord-notify-start:
+    executor: image-base
+    steps:
+      - discord/approval:
+          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow for tag **${CIRCLE_TAG}**."
+          webhook: "${DISCORD_WEBHOOK}"
+
   test:
     executor: image-go
     steps:
-      - discord/approval:
-          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow on branch **${CIRCLE_BRANCH}**."
-          webhook: "${DISCORD_APPROVAL_WEBHOOK}"
       - checkout
       - restore_cache:
           keys:
@@ -43,8 +47,8 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on branch **${CIRCLE_BRANCH}** failed."
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
+          webhook: "${DISCORD_WEBHOOK}"
 
   build:
     executor: image-base
@@ -55,9 +59,9 @@ jobs:
       - run:
           name: Build image
           command: |
-            docker build --target production -t "${REGISTRY_PROJECT_PATH}:latest" .
+            docker build --target production -t "${REGISTRY_PROJECT_PATH}" .
       - snyk/scan:
-          docker-image-name: "${REGISTRY_PROJECT_PATH}:latest"
+          docker-image-name: "${REGISTRY_PROJECT_PATH}"
           fail-on-issues: true
           monitor-on-build: true
           project: '${CIRCLE_PROJECT_REPONAME}'
@@ -73,8 +77,8 @@ jobs:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on branch **${CIRCLE_BRANCH}** failed."
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
+          webhook: "${DISCORD_WEBHOOK}"
 
   publish:
     executor: image-base
@@ -89,26 +93,43 @@ jobs:
       - run:
           name: Publish image
           command: |
+            VERSION_TAG=${CIRCLE_TAG#*v}
+            LATEST_TAG=$([[ ${CIRCLE_TAG} == *"DEV"* ]] && echo dev-latest || echo latest)
             echo "${REGISTRY_DOCKER_TOKEN}" | docker login -u averagebit --password-stdin
-            docker push "${REGISTRY_PROJECT_PATH}:latest"
+            docker tag "${REGISTRY_PROJECT_PATH}" "${REGISTRY_PROJECT_PATH}:${VERSION_TAG}"
+            docker tag "${REGISTRY_PROJECT_PATH}" "${REGISTRY_PROJECT_PATH}:${LATEST_TAG}"
+            docker push "${REGISTRY_PROJECT_PATH}:${VERSION_TAG}"
+            docker push "${REGISTRY_PROJECT_PATH}:${LATEST_TAG}"
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job on branch **${CIRCLE_BRANCH}** failed."
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
-      - discord/status:
-          success_only: true
-          success_message: ":tada: **${CIRCLE_USERNAME}**'s workflow on branch **${CIRCLE_BRANCH}** finished."
-          webhook: "${DISCORD_STATUS_WEBHOOK}"
+          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
+          webhook: "${DISCORD_WEBHOOK}"
+
+  discord-notify-finish:
+    executor: image-base
+    steps:
+      - discord/approval:
+          message: ":tada: **${CIRCLE_USERNAME}**'s workflow for tag **${CIRCLE_TAG}** finished."
+          webhook: "${DISCORD_WEBHOOK}"
 
 workflows:
   ci:
     jobs:
-      - test:
+      - discord-notify-start:
           context:
             - discord
           filters: &filters
+            tags:
+              only: /.*/
             branches:
-              only: main
+              ignore: /.*/
+
+      - test:
+          context:
+            - discord
+          filters:
+            <<: *filters
+
       - build:
           context:
             - discord
@@ -116,6 +137,7 @@ workflows:
             - snyk
           filters:
             <<: *filters
+
       - publish:
           context:
             - discord
@@ -123,5 +145,13 @@ workflows:
           requires:
             - test
             - build
+          filters:
+            <<: *filters
+
+      - discord-notify-finish:
+          context:
+            - discord
+          requires:
+            - deploy
           filters:
             <<: *filters
