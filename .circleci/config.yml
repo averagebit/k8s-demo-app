@@ -101,6 +101,7 @@ jobs:
 workflows:
   ci:
     jobs:
+
       - test:
           context:
             - discord
@@ -108,7 +109,7 @@ workflows:
             branches:
               only:
                 - devops
-
+                
       - build:
           context:
             - discord
