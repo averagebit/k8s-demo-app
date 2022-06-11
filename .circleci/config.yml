@@ -108,7 +108,8 @@ workflows:
           filters: &branch-filters
             branches:
               only:
-                - devops
+                - development
+                - main
                 
       - build:
           context:
