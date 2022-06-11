@@ -40,8 +40,7 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** for branch **${CIRCLE_BRANCH}** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
-          color: 15555676
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
   build:
@@ -71,8 +70,7 @@ jobs:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** for branch **${CIRCLE_BRANCH}** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
-          color: 15555676
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
   publish:
@@ -97,30 +95,19 @@ jobs:
             docker push "${REGISTRY_PROJECT_PATH}:${LATEST_TAG}"
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** for tag **${CIRCLE_TAG}** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
-          color: 15555676
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
 workflows:
   ci:
     jobs:
-      - discord/approval-notification:
-          color: "3843043"
-          message: ":zap: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** initiated."
-          webhook: "${DISCORD_WEBHOOK}"
-          filters: &tag-filters
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
-
       - test:
           context:
             - discord
           filters: &branch-filters
-          branches:
-            only:
-              - devops
+            branches:
+              only:
+                - devops
 
       - build:
           context:
@@ -138,12 +125,7 @@ workflows:
             - test
             - build
           filters:
-            <<: *tag-filters
-
-      - discord/approval-notification:
-          color: "3394662"
-          message: ":tada: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** finished successfully."
-          webhook: "${DISCORD_WEBHOOK}"
-          requires: publish
-          filters:
-            <<: *tag-filters
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
