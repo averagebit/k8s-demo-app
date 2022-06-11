@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs: 
-  discord: antonioned/discord@0.1.0
+  discord: teka23/discord@0.0.1
   snyk: snyk/snyk@1.1.2
 
 executors:
@@ -13,13 +13,6 @@ executors:
       - image: cimg/go:1.18.2
 
 jobs:
-  discord-notify-start:
-    executor: image-base
-    steps:
-      - discord/approval:
-          message: ":zap: **${CIRCLE_USERNAME}** triggered a workflow for tag **${CIRCLE_TAG}**."
-          webhook: "${DISCORD_WEBHOOK}"
-
   test:
     executor: image-go
     steps:
@@ -47,7 +40,7 @@ jobs:
           path: /tmp/test-reports
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
   build:
@@ -77,7 +70,7 @@ jobs:
             - ./image.tar
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
   publish:
@@ -102,41 +95,28 @@ jobs:
             docker push "${REGISTRY_PROJECT_PATH}:${LATEST_TAG}"
       - discord/status:
           fail_only: true
-          failure_message: ":exclamation: **${CIRCLE_USERNAME}**'s **[${CIRCLE_JOB}](${CIRCLE_BUILD_URL})** job for tag **${CIRCLE_TAG}** failed."
-          webhook: "${DISCORD_WEBHOOK}"
-
-  discord-notify-finish:
-    executor: image-base
-    steps:
-      - discord/approval:
-          message: ":tada: **${CIRCLE_USERNAME}**'s workflow for tag **${CIRCLE_TAG}** finished."
+          failure_message: ":exclamation: **[Workflow](https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID})** failed at the **[${CIRCLE_STAGE}](${CIRCLE_BUILD_URL})** stage."
           webhook: "${DISCORD_WEBHOOK}"
 
 workflows:
   ci:
     jobs:
-      - discord-notify-start:
-          context:
-            - discord
-          filters: &filters
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
 
       - test:
           context:
             - discord
-          filters:
-            <<: *filters
-
+          filters: &branch-filters
+            branches:
+              only:
+                - devops
+                
       - build:
           context:
             - discord
             - registry
             - snyk
           filters:
-            <<: *filters
+            <<: *branch-filters
 
       - publish:
           context:
@@ -146,12 +126,7 @@ workflows:
             - test
             - build
           filters:
-            <<: *filters
-
-      - discord-notify-finish:
-          context:
-            - discord
-          requires:
-            - publish
-          filters:
-            <<: *filters
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
