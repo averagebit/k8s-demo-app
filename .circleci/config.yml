@@ -101,23 +101,20 @@ jobs:
 workflows:
   ci:
     jobs:
-
       - test:
           context:
             - discord
-          filters: &branch-filters
-            branches:
-              only:
-                - development
-                - main
-                
+          filters: &all-filter
+            tags:
+              only: /.*/
+
       - build:
           context:
             - discord
             - registry
             - snyk
           filters:
-            <<: *branch-filters
+            <<: *all-filter
 
       - publish:
           context:
